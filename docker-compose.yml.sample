@@ -1,0 +1,32 @@
+# Validate YAML: docker compose (-f | --file) {compose_file} config
+
+
+services:
+    # OpenClaw
+    openclaw:
+        container_name: ${COMPOSE_PROJECT_NAME}_openclaw
+        # Version reference: https://github.com/openclaw/openclaw/pkgs/container/openclaw/versions?filters%5Bversion_type%5D=tagged
+        image: ghcr.io/openclaw/openclaw:2026.3.28
+        volumes:
+            # Directory structure reference: https://docs.openclaw.ai/install/docker-vm-runtime#what-persists-where
+            - ./volumes/openclaw:/home/node/.openclaw
+        ports:
+            - '18789:18789'
+        networks:
+            - project_net
+
+    # Ollama
+    ollama:
+        container_name: ${COMPOSE_PROJECT_NAME}_ollama
+        image: ollama/ollama:latest
+        volumes:
+            - ./volumes/ollama:/root/.ollama
+        ports:
+            - '11434:11434'
+        networks:
+            - project_net
+
+
+networks:
+    project_net:
+        driver: bridge
