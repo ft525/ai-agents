@@ -10,10 +10,15 @@ services:
         volumes:
             # Directory structure reference: https://docs.openclaw.ai/install/docker-vm-runtime#what-persists-where
             - ./volumes/openclaw:/home/node/.openclaw
+            - ./secrets:/secrets
         ports:
             - '18789:18789'
         networks:
             - project_net
+        # Docker Desktop (Windows) already includes `host.docker.internal` resolution; Linux needs this setting
+        #extra_hosts:
+        #    # Add host.docker.internal to point to the Docker host (host machine)
+        #    - "host.docker.internal:host-gateway"
 
     # Ollama
     ollama:
