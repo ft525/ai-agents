@@ -6,7 +6,7 @@ services:
     openclaw:
         container_name: ${COMPOSE_PROJECT_NAME}_openclaw
         # Version reference: https://github.com/openclaw/openclaw/pkgs/container/openclaw/versions?filters%5Bversion_type%5D=tagged
-        image: ghcr.io/openclaw/openclaw:2026.3.28
+        image: ghcr.io/openclaw/openclaw:2026.4.9
         volumes:
             # Directory structure reference: https://docs.openclaw.ai/install/docker-vm-runtime#what-persists-where
             - ./volumes/openclaw:/home/node/.openclaw

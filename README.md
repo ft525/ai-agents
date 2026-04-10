@@ -13,6 +13,56 @@ cp -p ./.env.sample ./.env
 
 
 
+## Gemma 4 (Google's open-source LLM)
+
+### Get API key
+- Go to `Google AI Studio` (Google account required)
+- Click "Create API key"
+- Copy the API key
+
+### Configure OpenClaw to use Gemma 4
+Model-related settings in onboarding:
+
+- Model/auth provider: `Google`
+- Google auth method: `Google Gemini API key` (Enter your API key)
+> TODO: The followings need optimization
+- Default model: Currently not listed, please select any one
+- Edit `./openclaw.json` and add following setting at `models.providers`
+```json
+      "google": {
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "api": "google-generative-ai",
+        "models": [
+          {
+            "id": "gemma-4-26b-a4b-it",
+            "name": "Gemma 4 26B A4B IT (MoE)",
+            "reasoning": true,
+            "input": [
+              "text",
+              "image"
+            ],
+            "contextWindow": 262144,
+            "maxTokens": 131072
+          },
+          {
+            "id": "gemma-4-31b-it",
+            "name": "Gemma 4 31B IT (Dense)",
+            "reasoning": true,
+            "input": [
+              "text",
+              "image"
+            ],
+            "contextWindow": 262144,
+            "maxTokens": 131072
+          }
+        ]
+      }
+```
+- See: [Edit `./openclaw.json` directly](#how-to-add-a-new-model-choose-one)
+
+
+
+
 ## Local models with Ollama (Optional)
 
 > [!NOTE]
@@ -70,7 +120,20 @@ docker compose run --rm openclaw openclaw channels add --channel telegram --toke
 ```
 
 > [!NOTE]
-> It is recommended to use the new bot, as it will change your webhook configuration.
+> It is recommended to use the new bot, as it will change bot's webhook configuration.
+
+### How to add a new model (Choose one)
+- Re-run `openclaw onboard`
+  - Setup mode: `QuickStart`
+  - Config handling: `Use existing values`
+- Edit `./openclaw.json` directly
+  - Check if the following settings contain the correct **Model ID** (`openclaw.json`)
+    - `agents.defaults.model.primary` => {provider}/{model_id}
+    - `agents.defaults.models` => object of {provider}/{model_id}
+  - Validate configuration: `openclaw config validate`
+  - Restart gateway: `openclaw gateway restart`
+
+See: https://docs.openclaw.ai/providers
 
 
 
@@ -150,12 +213,19 @@ openclaw skills install {skill}
 - Skill: To teach the agent how to use tools
   - gog: Google Workspace CLI for Gmail, Calendar, Drive, Contacts, Sheets, and Docs
 - Channel: A communication integration (e.g. Telegram, Discord)
+- Agent: Like a brain, it has its own workspace and session
+- Session: A conversation/work context
 
 ### Notes
 
 - In the official docs, `openclaw`, `openclaw-cli`, and `openclaw-gateway` may use the same image; the names are used to separate roles (gateway vs one-off CLI tasks).
-- How to run multiple gateways (watch resource usage):
-  - Define multiple services in `docker-compose.yml` (each gateway must publish a different host port)
-  - Use Docker scale: `docker compose up --scale {service}={num} -d`
+- When performing different tasks, should you create an agent or a session?
+  - Agent: Different tools OR different role
+  - Session: Same tools AND same role
 - Using local models:
   - Run a local model server (e.g. Ollama) and point OpenClaw to it
+- Model's API keys stored in `./agents/main/agent/`
+
+### Troubleshooting
+
+See: https://docs.openclaw.ai/help
