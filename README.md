@@ -1,11 +1,13 @@
 ## Setup
 
 ### Copy `docker-compose.yml` and enable the services you need
+
 ```bash
 cp -p ./docker-compose.yml.sample ./docker-compose.yml
 ```
 
 ### Copy `.env` and adjust settings
+
 ```bash
 cp -p ./.env.sample ./.env
 ```
@@ -16,11 +18,13 @@ cp -p ./.env.sample ./.env
 ## Gemma 4 (Google's open-source LLM)
 
 ### Get API key
+
 - Go to `Google AI Studio` (Google account required)
 - Click "Create API key"
 - Copy the API key
 
 ### Configure OpenClaw to use Gemma 4
+
 Model-related settings in onboarding:
 
 - Model/auth provider: `Google`
@@ -73,22 +77,26 @@ Model-related settings in onboarding:
 > Ollama API reference: https://docs.ollama.com/api/introduction
 
 ### Start Ollama
+
 ```bash
 docker compose up -d ollama
 ```
 
 ### Download a model
+
 Available models: https://ollama.com/library (e.g. `llama3.1`, `llama3.2`, `gemma3`, `qwen2.5`)
 ```bash
 docker compose exec ollama ollama pull {model}
 ```
 
 ### Quick test (Optional)
+
 ```bash
 docker compose exec ollama ollama run {model} "Say hello"
 ```
 
 ### Configure OpenClaw to use Ollama
+
 Model-related settings in onboarding:
 
 - Model/auth provider: `Ollama`
@@ -109,12 +117,14 @@ Model-related settings in onboarding:
 > The official Docker guide uses a dedicated `openclaw-cli` service name for one-off configuration tasks (e.g. onboarding and channel setup) to keep the long-running gateway service separate. In this repository we run the same CLI through the `openclaw` service instead (by overriding the command in `docker compose run ...`). Both approaches start a temporary container and write changes into the persisted OpenClaw directory. \
 > Reference: https://docs.openclaw.ai/install/docker
 
-### Run onboarding (one-off).
+### Run onboarding (one-off)
+
 ```bash
 docker compose run --rm openclaw openclaw onboard
 ```
 
-### Configure Telegram channel (Optional).
+### Configure Telegram channel (Optional)
+
 ```bash
 docker compose run --rm openclaw openclaw channels add --channel telegram --token "{token}"
 ```
@@ -123,6 +133,7 @@ docker compose run --rm openclaw openclaw channels add --channel telegram --toke
 > It is recommended to use the new bot, as it will change bot's webhook configuration.
 
 ### How to add a new model (Choose one)
+
 - Re-run `openclaw onboard`
   - Setup mode: `QuickStart`
   - Config handling: `Use existing values`
@@ -141,6 +152,7 @@ See: https://docs.openclaw.ai/providers
 ## Start OpenClaw
 
 ### Start the gateway service
+
 ```bash
 docker compose up -d openclaw
 ```
@@ -171,16 +183,19 @@ If you only changed persisted config via CLI commands and it does not take effec
 ## Skills Management
 
 ### List all available skills
+
 ```bash
 openclaw skills [list]
 ```
 
 ### Install a skill
+
 ```bash
 openclaw skills install {skill}
 ```
 
 #### Install & setup gog (Google Workspace CLI) skill
+
 - Install: `openclaw skills install gog`
 - Setup:
   - Go to **Google Cloud Console**
@@ -204,6 +219,73 @@ openclaw skills install {skill}
 
 
 
+## Tools
+
+### Web Browser (Chrome CDP)
+
+Reference: https://docs.openclaw.ai/tools/browser-wsl2-windows-remote-cdp-troubleshooting
+
+#### Configuration
+
+> [!IMPORTANT]
+> Domain access is currently unavailable, you must use IP address instead.
+
+Obtain the Docker host IP:
+```bash
+getent hosts host.docker.internal
+```
+
+Add the following settings to `./openclaw.json`
+```json
+  "browser": {
+    "enabled": true,
+    "defaultProfile": "remote",
+    "profiles": {
+      "remote": {
+        "cdpUrl": "ws://{docker_host_ip}:9222",
+        "attachOnly": true,
+        "color": "#00AA00"
+      }
+    }
+  }
+```
+
+#### Start Chrome on Windows
+
+```cmd
+start chrome --remote-debugging-port=9222 --user-data-dir="%TEMP%\openclaw" [--remote-debugging-address=0.0.0.0]
+```
+
+#### Verify Chrome CDP is reachable
+
+Run the following command in OpenClaw container
+
+```bash
+curl http://{docker_host_ip}:9222/json/version
+```
+
+or
+
+```bash
+curl -H 'Host: localhost' http://host.docker.internal:9222/json/version
+```
+
+#### Verify end-to-end browser control
+
+From OpenClaw container
+
+> [!IMPORTANT]
+> (For now) Options like `--browser-profile {profile}` can only be added in specific position (after `browser`), \
+> otherwise, an "unknown option" error will occur.
+
+```bash
+openclaw browser --browser-profile remote open https://{domain}
+openclaw browser --browser-profile remote tabs
+```
+
+
+
+
 ## Appendix
 
 ### Terminology
@@ -218,6 +300,9 @@ openclaw skills install {skill}
 
 ### Notes
 
+- After modifying `./openclaw.json`, the Gateway watches and applies changes automatically — no manual restart needed for most settings
+  - Restart Gateway: `openclaw gateway restart`
+  - See: https://docs.openclaw.ai/gateway/configuration#config-hot-reload
 - In the official docs, `openclaw`, `openclaw-cli`, and `openclaw-gateway` may use the same image; the names are used to separate roles (gateway vs one-off CLI tasks).
 - When performing different tasks, should you create an agent or a session?
   - Agent: Different tools OR different role
