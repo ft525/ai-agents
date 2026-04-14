@@ -1,3 +1,13 @@
+## Prerequisites
+
+### OpenClaw
+
+- **Absolute minimum**: 1 vCPU, 1GB RAM, ~500MB disk
+- **Recommended**: 1-2 vCPU, 2GB RAM
+
+
+
+
 ## Setup
 
 ### Copy `docker-compose.yml` and enable the services you need
@@ -32,6 +42,7 @@ Model-related settings in onboarding:
 > TODO: The followings need optimization
 - Default model: Currently not listed, please select any one
 - Edit `./openclaw.json` and add following setting at `models.providers`
+
 ```json
       "google": {
         "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
@@ -62,6 +73,7 @@ Model-related settings in onboarding:
         ]
       }
 ```
+
 - See: [Edit `./openclaw.json` directly](#how-to-add-a-new-model-choose-one)
 
 
@@ -85,6 +97,7 @@ docker compose up -d ollama
 ### Download a model
 
 Available models: https://ollama.com/library (e.g. `llama3.1`, `llama3.2`, `gemma3`, `qwen2.5`)
+
 ```bash
 docker compose exec ollama ollama pull {model}
 ```
@@ -145,6 +158,20 @@ docker compose run --rm openclaw openclaw channels add --channel telegram --toke
   - Restart gateway: `openclaw gateway restart`
 
 See: https://docs.openclaw.ai/providers
+
+### User timezone
+
+Set `agents.defaults.userTimezone` to tell the model the user’s local time zone.
+
+```json
+{
+  "agents": {
+    "defaults": {
+      "userTimezone": "Asia/Taipei"
+    }
+  }
+}
+```
 
 
 
@@ -230,19 +257,21 @@ Reference: https://docs.openclaw.ai/tools/browser-wsl2-windows-remote-cdp-troubl
 > [!IMPORTANT]
 > Domain access is currently unavailable, you must use IP address instead.
 
-Obtain the Docker host IP:
+Obtain the Docker host IP from OpenClaw container:
+
 ```bash
 getent hosts host.docker.internal
 ```
 
 Add the following settings to `./openclaw.json`
+
 ```json
   "browser": {
     "enabled": true,
     "defaultProfile": "remote",
     "profiles": {
       "remote": {
-        "cdpUrl": "ws://{docker_host_ip}:9222",
+        "cdpUrl": "http://{docker_host_ip}:9222",
         "attachOnly": true,
         "color": "#00AA00"
       }
@@ -286,6 +315,76 @@ openclaw browser --browser-profile remote tabs
 
 
 
+## Optimization
+
+### Session Pruning
+
+Session pruning trims old tool results from the context before each LLM call. It reduces context bloat from accumulated tool outputs (exec results, file reads, search results) without rewriting normal conversation text.
+
+> [!NOTE]
+> Pruning is in-memory only — it does not modify the on-disk session transcript. \
+> Your full history is always preserved.
+
+#### Enable or disable
+
+Pruning is off by default for non-Anthropic providers. To enable:
+
+```json
+// openclaw.json
+{
+  "agents": {
+    "defaults": {
+      "contextPruning": { "mode": "cache-ttl", "ttl": "5m" }
+    }
+  }
+}
+```
+
+### Compaction
+
+Every model has a context window — the maximum number of tokens it can process. When a conversation approaches that limit, OpenClaw **compacts** older messages into a summary so the chat can continue.
+
+#### Auto-compaction (default on)
+
+When a session nears or exceeds the model’s context window, OpenClaw triggers auto-compaction and may retry the original request using the compacted context.
+
+You’ll see:
+- `🧹 Auto-compaction complete` in verbose mode
+- `/status` showing `🧹 Compactions: {count}`
+
+#### Using a different model
+
+By default, compaction uses your agent’s primary model. You can use a more capable model for better summaries:
+
+```json
+// openclaw.json
+{
+  "agents": {
+    "defaults": {
+      "compaction": { "model": "{model}" }
+    }
+  }
+}
+```
+
+#### Compaction start notice
+
+By default, compaction runs silently. To show a brief notice when compaction starts, enable `notifyUser`:
+
+```json
+// openclaw.json
+{
+  "agents": {
+    "defaults": {
+      "compaction": { "notifyUser": true }
+    }
+  }
+}
+```
+
+
+
+
 ## Appendix
 
 ### Terminology
@@ -310,6 +409,14 @@ openclaw browser --browser-profile remote tabs
 - Using local models:
   - Run a local model server (e.g. Ollama) and point OpenClaw to it
 - Model's API keys stored in `./agents/main/agent/`
+
+### Migrate my setup to a new machine
+
+- Copy `$OPENCLAW_STATE_DIR` (default: `~/.openclaw`) to the new machine
+- Copy workspace (default: `~/.openclaw/workspace`) to the new machine
+- Run `openclaw doctor` and restart the Gateway service.
+
+See: https://docs.openclaw.ai/help/faq#can-i-migrate-my-setup-to-a-new-machine-mac-mini-without-redoing-onboarding
 
 ### Troubleshooting
 
